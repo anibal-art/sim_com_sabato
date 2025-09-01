@@ -1,0 +1,5 @@
+Práctica de Bash y comandos de Linux
+1.Realizar un script de bash que:
+2.Tenga una función (o rutina) que cuente la líneas de una dado archivo
+3.La función sea llamada desde la zona main, con un nombre de archivo. Este nombre de archivo debería ser puesto como argumento cuando se llama al script. Es decir, el comando:
+mi_bash.sh archivo.dat debería contar las líneas del archivo archivo.dat
