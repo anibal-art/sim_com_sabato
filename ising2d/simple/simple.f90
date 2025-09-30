@@ -8,11 +8,12 @@ program simple
     use ziggurat
     implicit none
 
-    ! ---------------- Vars del template y de la simulación ----------------
+    ! Varialbes
+
     logical :: es
     integer :: seed
 
-    ! Parámetros globales
+    ! Parámetros de la red y el hamiltoniano
     integer, parameter :: L = 30                 ! lado de la red
     integer, parameter :: N = L*L
     real(8), parameter :: J = 1.0D0              ! J=1 (unidades reducidas)
@@ -39,8 +40,6 @@ program simple
     call zigset(seed)
 ![FIN NO TOCAR]    
 
-    ! --------------------- CÓDIGO DEL ALUMNO (traducción Python) ---------------------
-
     call init_spins_all_plus(S)    ! Si = ones((L,L), int)
 
     call run_temperature_scan(S)   ! genera results_vs_T.dat
@@ -48,7 +47,6 @@ program simple
     print *, "  * Resultados escritos en results_vs_T.dat"
 
 !! 
-!! FIN FIN edicion
 !! 
 ![No TOCAR]
 ! Escribir la última semilla para continuar con la cadena de numeros aleatorios 
@@ -61,8 +59,6 @@ program simple
 
 contains
 
-    !==================== PARTE PRINCIPAL (traducción del Python) ====================
-
     subroutine run_temperature_scan(S)
         integer, intent(inout) :: S(:,:)
         ! Construye temp1, temp2, temp3 y ejecuta promedios con npr específicos.
@@ -71,9 +67,9 @@ contains
         real(8) :: T, mmedia, emedia, chi, c
 
         ! Definiciones de los tres tramos (como en tu Python)
-        n1 = 30   ! linspace(1.55, 2.15, 30)
-        n2 = 20   ! linspace(2.15, 2.45, 20)
-        n3 = 30   ! linspace(2.45, 3.05, 30)
+        n1 = 200   ! linspace(1.55, 2.15, 100)
+        n2 = 200   ! linspace(2.15, 2.45, 100)
+        n3 = 200   ! linspace(2.45, 3.05, 100)
 
         allocate(temp(n1+n2+n3))
 
@@ -84,20 +80,19 @@ contains
         open(newunit=ures, file='results_vs_T.dat', status='replace', action='write')
         write(ures,'(a)') "# T        <|M|>         <E>           chi            C"
 
-        ! Primer tramo
         do i = 1, n1
             T = temp(i)
             call promedios(T, 3000, S, mmedia, emedia, chi, c)
             write(ures,'(f8.4,1x,f14.8,1x,f14.8,1x,f14.8,1x,f14.8)') T, mmedia, emedia, chi, c
         end do
-        ! Segundo tramo (incluye Tc)
+        !
         do i = 1, n2
             idx = n1 + i
             T = temp(idx)
             call promedios(T, 20000, S, mmedia, emedia, chi, c)
             write(ures,'(f8.4,1x,f14.8,1x,f14.8,1x,f14.8,1x,f14.8)') T, mmedia, emedia, chi, c
         end do
-        ! Tercer tramo
+        
         do i = 1, n3
             idx = n1 + n2 + i
             T = temp(idx)
