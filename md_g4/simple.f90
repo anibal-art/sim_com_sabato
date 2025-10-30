@@ -9,7 +9,8 @@ program simple
     implicit none
     logical :: es
     integer :: seed,N,L, i, j, sigma, eps, cont
-    real (kind=8) :: aux, Vpot, d, fx, fy, fz, f_abs
+    real (kind=8) :: aux, Vpot, d, fx, fy, fz, f_abs, dx, dy, dz 
+    real (kind=8) :: rc, rc2, vcut
     real (kind=8), allocatable  :: y(:), c(:,:), r(:,:),v(:,:),f(:,:)
 
 
@@ -30,7 +31,7 @@ program simple
 ![FIN NO TOCAR]    
 
 
-    N=10
+    N=100
     L=1
 
 
@@ -50,30 +51,62 @@ program simple
     Vpot=0.0
     eps=1
     sigma=1
-    !cont=0
+
+    rc = 2.5*sigma
+    rc2 = rc*rc
+    vcut = 4*eps*((sigma/rc)**12 - (sigma/rc)**6)
+
     do i = 1, N
         do j = 1, i-1
-            !cont=cont+1
-            d = sqrt((r(i,1)-r(j,1))**2+(r(i,2)-r(j,2))**2+(r(i,3)-r(j,3))**2)
-            !print *,4*eps*(-(sigma/d)**6 + (sigma/d)**12)   
-            Vpot=Vpot+4*eps*(-(sigma/d)**6 + (sigma/d)**12) 
-            !print *,i,j, d, Vpot
+
+            dx = r(i,1) - r(j,1)
+            dy = r(i,2) - r(j,2)
+            dz = r(i,3) - r(j,3)
+
+            if (dx >  L/2) dx = dx - L
+            if (dx < -L/2) dx = dx + L
+            if (dy >  L/2) dy = dy - L
+            if (dy < -L/2) dy = dy + L
+            if (dz >  L/2) dz = dz - L
+            if (dz < -L/2) dz = dz + L
+
+            d = sqrt((dx)**2+(dy)**2+(dz)**2)
+
+            if (d > rc) cycle
+
+            Vpot = Vpot+4*eps*(-(sigma/d)**6 + (sigma/d)**12) - vcut
+
         end do
     end do
-    !print *, cont
 
+    f=0.0
     do i = 1, N
         do j = 1, i-1
             fx = 0
             fy = 0
             fz = 0
             if (i /= j) then
-                d = sqrt((r(i,1)-r(j,1))**2+(r(i,2)-r(j,2))**2+(r(i,3)-r(j,3))**2)
+
+                dx = r(i,1) - r(j,1)
+                dy = r(i,2) - r(j,2)
+                dz = r(i,3) - r(j,3)
+
+                if (dx >  L/2) dx = dx - L
+                if (dx < -L/2) dx = dx + L
+                if (dy >  L/2) dy = dy - L
+                if (dy < -L/2) dy = dy + L
+                if (dz >  L/2) dz = dz - L
+                if (dz < -L/2) dz = dz + L
+    
+                d = sqrt((dx)**2+(dy)**2+(dz)**2)
+
+                if (d > rc) cycle
+
                 f_abs = 24*eps*(-(sigma/d)**6 + 2 * (sigma/d)**12)/(d*d)
                 
-                fx = f_abs * (r(i,1)-r(j,1))   
-                fy = f_abs * (r(i,2)-r(j,2))   
-                fz = f_abs * (r(i,3)-r(j,3))   
+                fx = f_abs * dx  
+                fy = f_abs * dy   
+                fz = f_abs * dz   
 
                 f(i,1) = f(i,1) + fx
                 f(i,2) = f(i,2) + fy
@@ -89,11 +122,6 @@ program simple
     end do
     print *, f
             
-
-
-
-
-
 
 !! 
 !! F:IN FIN edicion
