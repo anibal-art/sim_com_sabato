@@ -9,7 +9,7 @@ program simple
     implicit none
     logical :: es
     integer :: seed,N,L, i, j, sigma, eps, cont
-    real (kind=8) :: aux, Vpot, d, fx, fy, fz
+    real (kind=8) :: aux, Vpot, d, fx, fy, fz, f_abs
     real (kind=8), allocatable  :: y(:), c(:,:), r(:,:),v(:,:),f(:,:)
 
 
@@ -24,6 +24,7 @@ program simple
     else
         seed = 24583490
     end if
+
 
     call zigset(seed)
 ![FIN NO TOCAR]    
@@ -62,19 +63,27 @@ program simple
     !print *, cont
 
     do i = 1, N
-        fx = 0
-        fy = 0
-        fz = 0
-        do j = 1, N
+        do j = 1, i-1
+            fx = 0
+            fy = 0
+            fz = 0
             if (i /= j) then
                 d = sqrt((r(i,1)-r(j,1))**2+(r(i,2)-r(j,2))**2+(r(i,3)-r(j,3))**2)
-                !print *, r(i,:), r(j,:)
-                !print *, r(i,:)- r(j,:)
-                fx = fx +4*eps*(6*sigma**6 * d**-7 - 12 * sigma**12 * d**-13) * (r(i,1)-r(j,1))/d   
-                fy = fy +4*eps*(6*sigma**6 * d**-7 - 12 * sigma**12 * d**-13) * (r(i,2)-r(j,2))/d   
-                fz = fz +4*eps*(6*sigma**6 * d**-7 - 12 * sigma**12 * d**-13) * (r(i,3)-r(j,3))/d   
-                !print *,i,j, f(i,j)
-            f(i,:) = [fx,fy,fz]
+                f_abs = 24*eps*(-(sigma/d)**6 + 2 * (sigma/d)**12)/(d*d)
+                
+                fx = f_abs * (r(i,1)-r(j,1))   
+                fy = f_abs * (r(i,2)-r(j,2))   
+                fz = f_abs * (r(i,3)-r(j,3))   
+
+                f(i,1) = f(i,1) + fx
+                f(i,2) = f(i,2) + fy
+                f(i,3) = f(i,3) + fz
+
+                f(j,1) = f(j,1) - fx
+                f(j,2) = f(j,2) - fy
+                f(j,3) = f(j,3) - fz
+
+            !f(i,:) = [fx,fy,fz]
             end if
         end do
     end do
@@ -82,30 +91,6 @@ program simple
             
 
 
-
-!! 
-!! EDITAR AQUI 
-!! 
-                        
-!    a=0
-!    b(:,:) = 1.
-
-! Alocar variables
-
-!    allocate(c(10,10),y(10))
-
-
-!    do i=1,10
-!        do j=1,10
-!            c(i,j)=a(i,j)+b(i,j)
-!        end do
-!    end do
-
-    
-!    if(i>5)  then 
- !       a(1,1) =1.
-  !      b(2,2)= 0.
-   ! end if
 
 
 
