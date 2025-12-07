@@ -1,0 +1,68 @@
+# ============================================
+# quench.in
+# Enfriar liquido LJ (~500 atomos) de T=2.5 a T~0.01
+# PBC, COM fijo, sin corte esferico
+# ============================================
+
+units           lj
+atom_style      atomic
+boundary        p p p
+
+# --- Definir el estilo de potencial ANTES de leer el data file ---
+pair_style      lj/cut 2.5
+
+# Los pair_coeff se leen desde el archivo de datos
+# (fueron escritos por melt.in en la seccion "Pair Coeffs")
+
+# --- Cargar el liquido pre-equilibrado ---
+read_data       liquid_500atoms_T2p5_rho1p09.lmpdat
+
+# --- Listas de vecinos ---
+neighbor        0.3 bin
+neigh_modify    every 1 delay 0 check yes
+
+timestep        0.005
+
+# --- (Opcional) asegurar que arrancamos cerca de T=2.5 ---
+velocity        all scale 2.5
+
+# --- Fijar COM en el centro de la caja ---
+fix             keepCOM all recenter 0.5 0.5 0.5 units fraction
+
+# ============================================
+# 1) QUENCH: T = 2.5 -> T = 0.01 (Langevin)
+# ============================================
+
+variable        Tstart equal 2.5
+variable        Tend   equal 0.01
+
+fix             Q   all langevin ${Tstart} ${Tend} 1.0 928374
+fix             INT all nve
+
+thermo          1000
+thermo_style    custom step temp pe ke etotal press
+
+# 200000 pasos * 0.005 = 1000 unidades de tiempo LJ
+run             200000
+
+unfix           Q
+
+# ============================================
+# 2) RELAJACION a T baja (NVE)
+# ============================================
+
+run             20000
+
+# ============================================
+# 3) Guardar el bulk amorfo
+# ============================================
+
+write_data      amorphous_500atoms_T0p01_rho1p09.lmpdat
+
+print "---------------------------------------"
+print "Bulk amorfo (~500 atomos) generado y guardado."
+print "---------------------------------------"
+dump d1 all atom 1 final_dump.lammpstrj
+run 1
+undump d1
+
