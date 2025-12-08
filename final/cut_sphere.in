@@ -1,0 +1,55 @@
+# ============================================
+# cut_sphere.in
+# Cortar un grano esferico de un solido amorfo LJ
+# ============================================
+
+units           lj
+atom_style      atomic
+boundary        p p p
+
+# --- Potencial LJ ---
+pair_style      lj/cut 2.5
+# Los pair_coeff se leen desde el data file si este tiene "Pair Coeffs"
+
+# --- Leer el solido amorfo bulk ---
+read_data       amorphous_4000atoms_T0p01_rho1p09.lmpdat
+
+# --- Obtener dimensiones y centro de la caja ---
+variable        xlo equal xlo
+variable        xhi equal xhi
+variable        ylo equal ylo
+variable        yhi equal yhi
+variable        zlo equal zlo
+variable        zhi equal zhi
+
+variable        xc equal 0.5*(${xlo}+${xhi})
+variable        yc equal 0.5*(${ylo}+${yhi})
+variable        zc equal 0.5*(${zlo}+${zhi})
+
+print "Centro de la caja: xc=${xc}, yc=${yc}, zc=${zc}"
+
+# --- Definir radio de la esfera ---
+variable        R equal 8.0
+print "Radio de la esfera (R) = ${R}"
+
+# --- Definir region esferica centrada en (xc,yc,zc) ---
+region          grain_sphere sphere ${xc} ${yc} ${zc} ${R} units box
+
+# --- Definir grupos para borrar fuera de la esfera ---
+group           ingrain region grain_sphere       # átomos dentro de la esfera
+group           todel subtract all ingrain        # todo lo que NO está en la esfera
+
+# Borrar los átomos que no están en la esfera
+delete_atoms    group todel
+
+# --- Informar cuántos átomos quedaron ---
+variable        n_grain equal count(all)
+print "Numero de atomos en el grano esferico = ${n_grain}"
+
+# --- Guardar el grano esferico ---
+write_data      grain_sphere_R8_amorphous_4000.lmpdat
+
+print "---------------------------------------"
+print "Grano esferico cortado y guardado en grain_sphere_R4_amorphous_4000.lmpdat"
+print "---------------------------------------"
+

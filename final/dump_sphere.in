@@ -1,0 +1,9 @@
+units           lj
+atom_style      atomic
+
+pair_style      lj/cut 2.5
+read_data       grain_sphere_R4_amorphous_4000.lmpdat
+
+dump d1 all atom 1 dump_esfera.lammpstrj
+run 1
+

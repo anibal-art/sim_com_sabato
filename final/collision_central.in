@@ -1,0 +1,84 @@
+# ============================================
+# collision_central.in
+# Colision central de dos granos LJ amorfos (R ~ 8)
+# a partir de grain_sphere_R8_relaxed_NVE.lmpdat
+# ============================================
+
+units           lj
+atom_style      atomic
+boundary        s s s      # sin PBC: granos en vacio
+
+pair_style      lj/cut 2.5
+# Pair Coeffs se leen del data file
+read_data       grain_sphere_R8_relaxed_NVE.lmpdat
+
+# ---- Primer grano: contar atomos y congelar ese numero ----
+variable        N1 equal count(all)
+variable        N1s equal ${N1}
+print "Numero de atomos en un grano = ${N1s}"
+
+# ---- Agrandar la caja para alojar dos granos separados ----
+# No remapeamos posiciones: solo cambiamos limites de la caja
+change_box      all x final 0 60 y final 0 30 z final 0 30
+
+# ---- Leer el segundo grano desplazado en x ----
+# "add append" agrega nuevos atomos; "shift" desplaza sus coords
+read_data       grain_sphere_R8_relaxed_NVE.lmpdat add append shift 30.0 0.0 0.0
+
+# ---- Definir grupos por ID ----
+# Primer grano: IDs 1..N1s
+group           g1 id 1:${N1s}
+# Segundo grano: todo lo que NO esta en g1
+group           g2 subtract all g1
+
+# Comprobar tamaños de los grupos
+variable        Ng1 equal count(g1)
+variable        Ng2 equal count(g2)
+print "Atomos en g1 = ${Ng1}"
+print "Atomos en g2 = ${Ng2}"
+
+# ---- Listas de vecinos y timestep ----
+neighbor        0.3 bin
+neigh_modify    every 1 delay 0 check yes
+
+timestep        0.002
+
+# ---- Velocidades iniciales ----
+# Un poco de T interna muy baja
+velocity        all create 0.01 12345 mom yes rot yes dist gaussian
+
+# Velocidad de cada grano (en marco del centro de masa)
+variable        v equal 0.2
+print "Velocidad de cada grano = ${v}"
+variable        vrel equal 2.0*${v}
+print "Velocidad relativa v_rel = ${vrel}"
+
+# g1 va hacia +x, g2 hacia -x
+velocity        g1 set  ${v} 0.0 0.0 sum yes
+velocity        g2 set -${v} 0.0 0.0 sum yes
+
+# Eliminar deriva de momento global (por seguridad)
+fix             mom all momentum 100 linear 1 0 0
+
+# ---- Integracion en NVE ----
+fix             INT all nve
+
+thermo          500
+thermo_style    custom step temp pe ke etotal
+
+# Dump para visualizar la colision
+dump            dc all atom 500 dump.collision_R8_central.lammpstrj
+dump_modify     dc sort id
+
+# ---- Correr la colision ----
+run             40000
+
+undump          dc
+unfix           INT
+unfix           mom
+
+print "---------------------------------------"
+print "Simulacion de colision central R~8 finalizada."
+print "Dump: dump.collision_R8_central.lammpstrj"
+print "---------------------------------------"
+

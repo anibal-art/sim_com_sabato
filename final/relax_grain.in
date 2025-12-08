@@ -1,0 +1,58 @@
+# ============================================
+# relax_grain.in  (version corregida)
+# Relajar el grano esferico en vacio
+# y dejarlo evolucionar en NVE sin estirarlo
+# ============================================
+
+units           lj
+atom_style      atomic
+boundary        s s s      # sin PBC; la caja sigue la nube de atomos
+
+pair_style      lj/cut 2.5
+# Pair Coeffs se leen del data file
+read_data       grain_sphere_R8_amorphous_4000.lmpdat
+
+neighbor        0.3 bin
+neigh_modify    every 1 delay 0 check yes
+
+timestep        0.002   # paso un poco mas chico para estar tranquilos
+
+# --- (opcional) minimizacion rapida para sacar tensiones fuertes ---
+reset_timestep  0
+min_style       cg
+minimize        1.0e-6  1.0e-8  1000  10000
+
+# --- Velocidades iniciales MUY bajas ---
+velocity        all create 0.01 12345 mom yes rot yes dist gaussian
+
+# quitar deriva de momento lineal
+fix             mom all momentum 100 linear 1 1 1
+
+# Langevin MUY suave solo para asentar la estructura
+fix             Q   all langevin 0.01 0.01 10.0 98765
+fix             INT all nve
+
+thermo          500
+thermo_style    custom step temp pe ke etotal
+
+dump            d1 all atom 1000 dump.grain_R8_relax.lammpstrj
+dump_modify     d1 sort id
+
+# --- Relax termico suave ---
+run             20000
+
+# --- A partir de aqui: NVE puro ---
+unfix           Q
+print "=== Comienza tramo NVE puro (sin termostato) ==="
+
+run             20000
+
+undump          d1
+
+write_data      grain_sphere_R8_relaxed_NVE.lmpdat
+
+print "---------------------------------------"
+print "Grano esferico relajado y evolucionado en NVE (sin estirarlo)."
+print "Guardado en grain_sphere_R8_relaxed_NVE.lmpdat"
+print "---------------------------------------"
+
