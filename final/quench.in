@@ -15,7 +15,7 @@ pair_style      lj/cut 2.5
 # (fueron escritos por melt.in en la seccion "Pair Coeffs")
 
 # --- Cargar el liquido pre-equilibrado ---
-read_data       liquid_500atoms_T2p5_rho1p09.lmpdat
+read_data       liquid_4000atoms_T2p5_rho1p09.lmpdat
 
 # --- Listas de vecinos ---
 neighbor        0.3 bin
@@ -57,7 +57,7 @@ run             20000
 # 3) Guardar el bulk amorfo
 # ============================================
 
-write_data      amorphous_500atoms_T0p01_rho1p09.lmpdat
+write_data      amorphous_4000atoms_T0p01_rho1p09.lmpdat
 
 print "---------------------------------------"
 print "Bulk amorfo (~500 atomos) generado y guardado."

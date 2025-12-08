@@ -31,6 +31,9 @@ group           g1 id 1:${N1s}
 # Segundo grano: todo lo que NO esta en g1
 group           g2 subtract all g1
 
+set group g1 type 1
+set group g2 type 2
+
 # Comprobar tamaños de los grupos
 variable        Ng1 equal count(g1)
 variable        Ng2 equal count(g2)
@@ -48,7 +51,7 @@ timestep        0.002
 velocity        all create 0.01 12345 mom yes rot yes dist gaussian
 
 # Velocidad de cada grano (en marco del centro de masa)
-variable        v equal 0.2
+variable        v equal 2
 print "Velocidad de cada grano = ${v}"
 variable        vrel equal 2.0*${v}
 print "Velocidad relativa v_rel = ${vrel}"

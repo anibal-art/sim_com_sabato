@@ -1,0 +1,106 @@
+# ============================================
+# collision_central_color.in
+# Colision central de dos granos LJ amorfos (R ~ 8)
+# Cada grano con tipo atomico distinto (1 y 2)
+# para visualizarlos con distinto color en VMD
+# ============================================
+
+units           lj
+atom_style      atomic
+boundary        s s s      # granos en vacio, sin PBC
+
+# --- Estilo de potencial ---
+pair_style      lj/cut 2.5
+
+# --- 1) Leer el primer grano ---
+# extra/atom/types 1 -> permitimos un tipo atomico extra (tipo 2)
+read_data       grain_sphere_R8_relaxed_NVE.lmpdat extra/atom/types 1
+
+# Numero de atomos en un grano (se congela en N1s)
+variable        N1  equal count(all)
+variable        N1s equal ${N1}
+print "Numero de atomos en un grano = ${N1s}"
+
+# --- 2) Agrandar la caja para alojar dos granos separados ---
+# Solo cambiamos limites de la caja (no remapeamos las posiciones)
+change_box      all x final 0 60 y final 0 30 z final 0 30
+
+# --- 3) Leer el segundo grano desplazado en x ---
+# add append -> agrega atomos nuevos
+# shift 30 0 0 -> lo traslada en +x
+read_data       grain_sphere_R8_relaxed_NVE.lmpdat add append shift 30.0 0.0 0.0
+
+# --- 4) Definir grupos por ID ---
+# Primer grano: IDs 1..N1s
+group           g1 id 1:${N1s}
+# Segundo grano: todo lo que NO esta en g1
+group           g2 subtract all g1
+
+# Verificar tamaño de grupos
+variable        Ng1 equal count(g1)
+variable        Ng2 equal count(g2)
+print "Atomos en g1 = ${Ng1}"
+print "Atomos en g2 = ${Ng2}"
+
+# --- 5) Asignar tipos atomicos distintos ---
+# g1 -> tipo 1, g2 -> tipo 2
+set             group g1 type 1
+set             group g2 type 2
+
+# --- 5b) Definir masas para todos los tipos ---
+# (imprescindible antes de velocity create)
+mass            1 1.0
+mass            2 1.0
+# o alternativamente: mass * 1.0
+
+# Definir todos los coeficientes LJ relevantes
+# (dentro de g1, dentro de g2, e inter-grano)
+pair_coeff      1 1 1.0 1.0 2.5
+pair_coeff      2 2 1.0 1.0 2.5
+pair_coeff      1 2 1.0 1.0 2.5
+
+# --- 6) Vecinos y timestep ---
+neighbor        0.3 bin
+neigh_modify    every 1 delay 0 check yes
+
+timestep        0.002
+
+# --- 7) Velocidades iniciales ---
+# Un poco de vibracion interna a T baja
+velocity        all create 0.01 12345 mom yes rot yes dist gaussian
+
+# Velocidad de cada grano (en el marco del centro de masa)
+variable        v    equal 2
+print "Velocidad de cada grano = ${v}"
+variable        vrel equal 2.0*${v}
+print "Velocidad relativa v_rel = ${vrel}"
+
+# g1 -> +v en x, g2 -> -v en x
+velocity        g1 set  ${v} 0.0 0.0 sum yes
+velocity        g2 set -${v} 0.0 0.0 sum yes
+
+# Corregir deriva de momento global en x, por seguridad
+fix             mom all momentum 100 linear 1 0 0
+
+# --- 8) Integracion en NVE ---
+fix             INT all nve
+
+thermo          500
+thermo_style    custom step temp pe ke etotal
+
+# Dump para visualizar la colision
+dump            dc all atom 500 dump.collision_R8_central_color.lammpstrj
+dump_modify     dc sort id
+
+# --- 9) Correr la colision ---
+run             40000
+
+undump          dc
+unfix           INT
+unfix           mom
+
+print "---------------------------------------"
+print "Simulacion de colision central R~8 (colores por tipo) finalizada."
+print "Dump: dump.collision_R8_central_color.lammpstrj"
+print "---------------------------------------"
+
