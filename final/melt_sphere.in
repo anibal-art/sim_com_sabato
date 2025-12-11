@@ -1,0 +1,58 @@
+# ==========================================
+# melt_sphere.in
+# Melt + formación espontánea de gota LJ
+# Fluido creado solo en cubito central dentro de caja grande
+# ==========================================
+
+units           lj
+atom_style      atomic
+boundary        s s s      # sin PBC (vacío alrededor)
+
+# --- Caja grande ---
+region          box block 0 40 0 40 0 40
+create_box      1 box      # define 1 tipo (aquí recién se puede usar pair_coeff)
+
+# --- Interacciones ---
+pair_style      lj/cut 2.5
+pair_coeff      1 1 1.0 1.0 2.5
+
+mass            1 1.0
+
+# --- Crear cubo de fluido en el centro ---
+region          cube block 10 30 10 30 10 30
+create_atoms    1 region cube
+
+# --- Output info ---
+variable        n equal count(all)
+print "Numero de atomos creados = ${n}"
+
+neighbor        0.3 bin
+neigh_modify    every 1 delay 0 check yes
+
+# --- Termostatización ---
+timestep        0.005
+
+# Para ver formación de gota: T < Tc (Tc ≈ 1.1)
+variable        Tmelt equal 0.8
+velocity        all create ${Tmelt} 12345 mom yes rot yes dist gaussian
+
+fix             fT all langevin ${Tmelt} ${Tmelt} 1.0 48279
+fix             INT all nve
+fix             mom all momentum 100 linear 1 1 1
+
+# --- Output y dump ---
+thermo          500
+thermo_style    custom step temp pe ke etotal press
+
+dump            d1 all atom 500 dump.melt_sphere.lammpstrj
+dump_modify     d1 sort id
+
+# --- Run (ver cómo el cubo se vuelve esfera) ---
+run             50000
+
+unfix fT
+unfix INT
+unfix mom
+
+print "Simulacion finalizada"
+
